@@ -6,6 +6,27 @@ import { valideURLConvert } from '../utils/valideURLConvert'
 import {Link, useNavigate} from 'react-router-dom'
 import CategoryWiseProductDisplay from '../components/CategoryWiseProductDisplay'
 
+//slider
+import { Swiper, SwiperSlide } from "swiper/react";
+import { Autoplay, Pagination } from "swiper/modules";
+import "swiper/css";
+import "swiper/css/pagination";
+
+
+// Example: dynamic banner images
+const desktopBanners = [
+  "/images/banner1-desktop.jpg",
+  "/images/banner2-desktop.jpg",
+  "/images/banner3-desktop.jpg"
+];
+
+const mobileBanners = [
+  "/images/banner1-mobile.jpg",
+  "/images/banner2-mobile.jpg",
+  "/images/banner3-mobile.jpg"
+];
+
+
 const Home = () => {
   const loadingCategory = useSelector(state => state.product.loadingCategory)
   const categoryData = useSelector(state => state.product.allCategory)
@@ -30,21 +51,28 @@ const Home = () => {
 
   return (
    <section className='bg-white'>
-      <div className='container mx-auto'>
-          <div className={`w-full h-full min-h-48 bg-blue-100 rounded ${!banner && "animate-pulse my-2" } `}>
-              <img
-                src={banner}
-                className='w-full h-full hidden lg:block'
-                alt='banner' 
-              />
-              <img
-                src={bannerMobile}
-                className='w-full h-full lg:hidden'
-                alt='banner' 
-              />
-          </div>
+       <div className="container mx-auto">
+        <Swiper
+          modules={[Autoplay, Pagination]}
+          pagination={{ clickable: true }}
+          autoplay={{ delay: 3000, disableOnInteraction: false }}
+          loop={true}
+          className="w-full h-full min-h-48 rounded"
+        >
+          {desktopBanners.map((banner, index) => (
+            <SwiperSlide key={index} className="hidden lg:block">
+              <img src={banner} alt={`banner-${index}`} className="w-full h-full object-cover" />
+            </SwiperSlide>
+          ))}
+
+          {mobileBanners.map((banner, index) => (
+            <SwiperSlide key={`m-${index}`} className="lg:hidden">
+              <img src={banner} alt={`banner-mobile-${index}`} className="w-full h-full object-cover" />
+            </SwiperSlide>
+          ))}
+        </Swiper>
       </div>
-      
+
       <div className='container mx-auto px-4 my-2 grid grid-cols-5 md:grid-cols-8 lg:grid-cols-10  gap-2'>
           {
             loadingCategory ? (

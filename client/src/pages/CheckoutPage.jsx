@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { useGlobalContext } from '../provider/GlobalProvider'
 import { DisplayPriceInRupees } from '../utils/DisplayPriceInRupees'
 import AddAddress from '../components/AddAddress'
@@ -8,7 +8,8 @@ import Axios from '../utils/Axios'
 import SummaryApi from '../common/SummaryApi'
 import toast from 'react-hot-toast'
 import { useNavigate } from 'react-router-dom'
-import { loadStripe } from '@stripe/stripe-js'
+import axios from "axios";
+
 
 const CheckoutPage = () => {
   const { notDiscountTotalPrice, totalPrice, totalQty, fetchCartItem,fetchOrder } = useGlobalContext()
@@ -52,37 +53,92 @@ const CheckoutPage = () => {
       }
   }
 
-  const handleOnlinePayment = async()=>{
-    try {
-        toast.loading("Loading...")
-        const stripePublicKey = import.meta.env.VITE_STRIPE_PUBLIC_KEY
-        const stripePromise = await loadStripe(stripePublicKey)
-       
-        const response = await Axios({
-            ...SummaryApi.payment_url,
-            data : {
-              list_items : cartItemsList,
-              addressId : addressList[selectAddress]?._id,
-              subTotalAmt : totalPrice,
-              totalAmt :  totalPrice,
-            }
-        })
+  const handleOnlinePayment = async () => {
+  try {
+    // toast.loading("Loading Razorpay...");
 
-        const { data : responseData } = response
+    // 1. Create Razorpay order from backend
+    const { data } = await Axios({
+      ...SummaryApi.payment_url, // points to backend paymentController
+      data: {
+        list_items: cartItemsList,
+        addressId: addressList[selectAddress]?._id,
+        subTotalAmt: totalPrice,
+        totalAmt: totalPrice,
+      },
+    });
 
-        stripePromise.redirectToCheckout({ sessionId : responseData.id })
-        
-        if(fetchCartItem){
-          fetchCartItem()
-        }
-        if(fetchOrder){
-          fetchOrder()
-        }
-    } catch (error) {
-        AxiosToastError(error)
+    if (!data.success) {
+      toast.error("Failed to initiate payment");
+      return;
     }
+
+    const { id: order_id, amount, currency } = data.order;
+
+    // 2. Load Razorpay SDK
+    const loadRazorpayScript = () => {
+      return new Promise((resolve) => {
+        const script = document.createElement("script");
+        script.src = "https://checkout.razorpay.com/v1/checkout.js";
+        script.onload = () => resolve(true);
+        script.onerror = () => resolve(false);
+        document.body.appendChild(script);
+      });
+    };
+
+    const isLoaded = await loadRazorpayScript();
+    if (!isLoaded) {
+      toast.error("Razorpay SDK failed to load");
+      return;
+    }
+
+    // 3. Razorpay checkout options
+    const options = {
+      key: import.meta.env.VITE_RAZORPAY_KEY_ID,
+      amount,
+      currency,
+      name: "Blinkeyit",
+      description: "Order Payment",
+      order_id,
+      handler: async function (response) {
+        try {
+          // Send payment verification to backend
+          const verifyRes = await Axios.post("/api/order/verify-payment", {
+            ...response,
+            list_items: cartItemsList,
+            addressId: addressList[selectAddress]?._id,
+            subTotalAmt: totalPrice,
+            totalAmt: totalPrice,
+          });
+
+          if (verifyRes.data.success) {
+            toast.success("Payment Successful!");
+            fetchCartItem && fetchCartItem();
+            fetchOrder && fetchOrder();
+            // navigate("/success", { state: { text: "Order" } });
+            navigate("/", { state: { text: "Order" } });
+          } else {
+            toast.error("Payment verification failed");
+          }
+        } catch (err) {
+          AxiosToastError(err);
+        }
+      },
+      theme: {
+        color: "#3399cc",
+      },
+    };
+
+    // 4. Open Razorpay
+    const rzp = new window.Razorpay(options);
+    rzp.open();
+
+  } catch (error) {
+    AxiosToastError(error);
   }
-  return (
+}
+
+return (
     <section className='bg-blue-50'>
       <div className='container mx-auto p-4 flex flex-col lg:flex-row w-full gap-5 justify-between'>
         <div className='w-full'>
@@ -156,6 +212,9 @@ const CheckoutPage = () => {
       }
     </section>
   )
+
 }
 
 export default CheckoutPage
+
+

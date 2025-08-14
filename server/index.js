@@ -19,12 +19,17 @@ const app = express()
 app.use(cors(
     {
     credentials : true,
-    origin : ['https://quickcart-1-6ysz.onrender.com', 'http://localhost:5173/']
+    origin : ['https://quickcart-1-6ysz.onrender.com', 'http://localhost:5173']
 }
 ))
 app.use(express.json())
 app.use(cookieParser())
-app.use(morgan('conbined'))
+
+// Or only use it in development mode
+if (process.env.NODE_ENV === 'development') {
+  app.use(morgan('dev')); // shorter format
+}
+
 app.use(helmet({
     crossOriginResourcePolicy : false
 }))
