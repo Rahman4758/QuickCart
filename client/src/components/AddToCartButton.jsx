@@ -19,6 +19,13 @@ const AddToCartButton = ({ data }) => {
     const handleADDTocart = async (e) => {
         e.preventDefault()
         e.stopPropagation()
+        
+         // ✅ 1. Check if token exists before making API call
+         const token = localStorage.getItem("token");
+         if (!token) {
+         toast.error("Please login to add items to cart");
+         return; // Stop function execution
+         }
 
         try {
             setLoading(true)
