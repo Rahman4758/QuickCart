@@ -39,7 +39,8 @@ const Login = () => {
         try {
             const response = await Axios({
                 ...SummaryApi.login,
-                data : data
+                data : data,
+                 withCredentials: true   // ✅ cookie bhejne/lene ke liye
             })
             
             if(response.data.error){
@@ -49,8 +50,7 @@ const Login = () => {
 
             if(response.data.success){
                 toast.success(response.data.message)
-                localStorage.setItem('accesstoken',response.data.data.accesstoken)
-                localStorage.setItem('refreshToken',response.data.data.refreshToken)
+               
 
                 const userDetails = await fetchUserDetails()
                 dispatch(setUserDetails(userDetails.data))

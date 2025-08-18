@@ -147,7 +147,7 @@ export async function loginController(request,response){
         const accesstoken = await generatedAccessToken(user._id)
         const refreshToken = await genertedRefreshToken(user._id)
 
-        const updateUser = await UserModel.findByIdAndUpdate(user?._id,{
+         await UserModel.findByIdAndUpdate(user?._id,{
             last_login_date : new Date()
         })
 
@@ -156,17 +156,17 @@ export async function loginController(request,response){
             secure : true,
             sameSite : "None"
         }
-        response.cookie('accessToken',accesstoken,cookiesOption)
-        response.cookie('refreshToken',refreshToken,cookiesOption)
+        response.cookie('accessToken',accesstoken,{...cookiesOption,maxAge: 24*60*60*1000 })// 1 day
+        response.cookie('refreshToken',refreshToken,{...cookiesOption,maxAge: 7*24*60*60*1000} )
 
         return response.json({
             message : "Login successfully",
             error : false,
             success : true,
-            data : {
-                accesstoken,
-                refreshToken
-            }
+            // data : {
+            //     accesstoken,
+            //     refreshToken
+            // }
         })
 
     } catch (error) {

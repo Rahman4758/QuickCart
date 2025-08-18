@@ -20,18 +20,13 @@ const AddToCartButton = ({ data }) => {
         e.preventDefault()
         e.stopPropagation()
         
-         // ✅ 1. Check if token exists before making API call
-         const token = localStorage.getItem("token");
-         if (!token) {
-         toast.error("Please login to add items to cart");
-         return; // Stop function execution
-         }
 
         try {
             setLoading(true)
 
             const response = await Axios({
                 ...SummaryApi.addTocart,
+               withCredentials: true,   // ✅ cookies send automatically
                 data: {
                     productId: data?._id
                 }
@@ -45,9 +40,13 @@ const AddToCartButton = ({ data }) => {
                     fetchCartItem()
                 }
             }
-        } catch (error) {
-            AxiosToastError(error)
-        } finally {
+        }  catch (error) {
+    // agar cookie na ho to backend 401 dega
+    if (error.response?.status === 401) {
+      toast.error("Please login to add items to cart");
+    } else {
+      AxiosToastError(error);
+    } }finally {
             setLoading(false)
         }
 
